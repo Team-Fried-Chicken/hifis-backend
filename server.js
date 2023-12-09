@@ -26,10 +26,10 @@ const db = mysql.createConnection({
 	database: process.env.DB_DATABASE,
 });
 
-app.post("/login", (req, res) => {
+app.post("/auth/login", (req, res) => {
 	console.log("Request Body:", req.body);
 	const sql =
-		"SELECT * FROM hifis_pitusers WHERE `username` = ? AND `password` = ?";
+		"SELECT * FROM hifis_pitusers WHERE `name` = ? AND `password` = ?";
 
 	// Use parameterized query to prevent SQL injection
 	db.query(sql, [req.body.username, req.body.password], (err, data) => {
@@ -38,10 +38,16 @@ app.post("/login", (req, res) => {
 			return res.status(500).json({ message: "Internal server error" });
 		}
 		if (data.length > 0) {
-			const userId = data[0].userId;
-			const token = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, {
-				expiresIn: "1h",
-			});
+			const user = data[0]; // Assuming the first row from the query contains the user information
+			const userId = user.user_id;
+			const username = user.name; // Add this line to retrieve the username
+			const token = jwt.sign(
+				{ userId, username },
+				process.env.ACCESS_TOKEN_SECRET,
+				{
+					expiresIn: "1h",
+				}
+			);
 			return res.json({ login: true, accessToken: token });
 		} else {
 			return res.json({ login: false, message: "Invalid credentials" });
@@ -49,7 +55,7 @@ app.post("/login", (req, res) => {
 	});
 });
 
-app.get("/questions", (req, res) => {
+app.get("/auth/questions", (req, res) => {
 	const sql = "SELECT * FROM HIFIS_PiTQuestions";
 	db.query(sql, (err, data) => {
 		if (err) {
