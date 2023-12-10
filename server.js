@@ -28,6 +28,7 @@ const db = mysql.createConnection({
 
 app.post("/auth/login", (req, res) => {
 	console.log("Request Body:", req.body);
+
 	const sql =
 		"SELECT * FROM hifis_pitusers WHERE `name` = ? AND `password` = ?";
 
@@ -37,10 +38,11 @@ app.post("/auth/login", (req, res) => {
 			console.error("Error executing query:", err);
 			return res.status(500).json({ message: "Internal server error" });
 		}
+
 		if (data.length > 0) {
-			const user = data[0]; // Assuming the first row from the query contains the user information
+			const user = data[0];
 			const userId = user.user_id;
-			const username = user.name; // Add this line to retrieve the username
+			const username = user.name;
 			const token = jwt.sign(
 				{ userId, username },
 				process.env.ACCESS_TOKEN_SECRET,
@@ -50,7 +52,10 @@ app.post("/auth/login", (req, res) => {
 			);
 			return res.json({ login: true, accessToken: token });
 		} else {
-			return res.json({ login: false, message: "Invalid credentials" });
+			// If no matching user is found, return an error message
+			return res
+				.status(401)
+				.json({ login: false, message: "Invalid credentials" });
 		}
 	});
 });
