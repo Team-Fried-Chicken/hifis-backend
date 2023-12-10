@@ -55,6 +55,17 @@ app.post("/auth/login", (req, res) => {
 	});
 });
 
+app.get("/auth/pitsurvey", (req, res) => {
+	const sql = "SELECT * FROM hifis_pitsurvey";
+	db.query(sql, (err, data) => {
+		if (err) {
+			console.error("Error executing query:", err);
+			return res.status(500).json({ message: "Internal server error" });
+		}
+		return res.json(data);
+	});
+});
+
 app.get("/auth/questions", (req, res) => {
 	const sql = "SELECT * FROM HIFIS_PiTQuestions";
 	db.query(sql, (err, data) => {
