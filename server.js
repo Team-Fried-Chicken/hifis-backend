@@ -106,6 +106,17 @@ app.get("/auth/questions", (req, res) => {
 	});
 });
 
+app.get("/auth/answers", (req, res) => {
+	const sql = "SELECT dd.QuestionPickListID AS OptionID, dd.QuestionID, dd.Name AS Options, ddat.NameE AS Actions FROM HIFIS_PiTQuestionDropDown dd LEFT JOIN HIFIS_PiTDropDownActionTypes ddat ON dd.DropDownActionTypeID = ddat.ID";
+	db.query(sql, (err, data) => {
+		if (err) {
+			console.error("Error executing query:", err);
+			return res.status(500).json({ message: "Internal server error" });
+		}
+		return res.json(data);
+	});
+});
+
 app.get("/", (req, res) => {
 	return res.json("From Backend");
 });
