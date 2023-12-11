@@ -49,7 +49,11 @@ app.post("/api/login", (req, res) => {
 					expiresIn: "1h",
 				}
 			);
-			return res.json({ login: true, accessToken: token });
+			return res.json({
+				login: true,
+				accessToken: token,
+				user: { userId, username },
+			});
 		} else {
 			// If no matching user is found, return an error message
 			return res
@@ -70,8 +74,25 @@ app.get("/api/pitsurvey", authenticateToken, (req, res) => {
 	});
 });
 
+//Get the predicted primary key for inserting a new survey
+app.get("/api/predictedSurveyNo", authenticateToken, (req, res) => {
+	const sql = "SELECT MAX(SurveyNo) AS maxSurveyNo FROM hifis_pitsurvey";
+
+	db.query(sql, (err, result) => {
+		if (err) {
+			console.error("Error executing query:", err);
+			return res.status(500).json({ message: "Internal server error" });
+		}
+
+		const maxSurveyNo = result[0].maxSurveyNo || 0;
+		const predictedSurveyNo = maxSurveyNo + 1;
+
+		return res.json({ predictedSurveyNo });
+	});
+});
+
 app.get("/api/questions", (req, res) => {
-	const sql = "SELECT * FROM HIFIS_PiTQuestions";
+	const sql = "SELECT * FROM hifis_pitquestions";
 	db.query(sql, (err, data) => {
 		if (err) {
 			console.error("Error executing query:", err);
