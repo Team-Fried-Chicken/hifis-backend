@@ -67,18 +67,42 @@ app.get("/auth/pitsurvey", (req, res) => {
 			console.error("Error executing query:", err);
 			return res.status(500).json({ message: "Internal server error" });
 		}
+		Console.Log(data);
 		return res.json(data);
 	});
 });
 
 app.get("/auth/questions", (req, res) => {
-	const sql = "SELECT * FROM HIFIS_PiTQuestions";
+	const sql = "SELECT q.QuestionID, qt.NameE AS Type, q.Question, q.SequenceNo, q.ActivatedBy, q.Type AS Category FROM HIFIS_PiTQuestions q JOIN HIFIS_PiTQuestionTypes qt ON q.QuestionTypeID = qt.ID ORDER BY q.SequenceNo";
 	db.query(sql, (err, data) => {
 		if (err) {
 			console.error("Error executing query:", err);
 			return res.status(500).json({ message: "Internal server error" });
 		}
-		return res.json(data);
+		let newData = [];
+		for (let i = 0; i < data.length; i++) {
+			let aData = {
+				QuestionID: data[i].QuestionID,
+				Type: data[i].Type,
+				Question: data[i].Question,
+				SequenceNo: data[i].SequenceNo,
+				ActivatedBy: data[i].ActivatedBy,
+				Category: data[i].Category,
+				Subquestion: []
+			}
+
+			if (data[i].ActivatedBy !== null) {
+				let activatedByItem = newData.find(item => item.QuestionID === data[i].ActivatedBy);
+			
+				if (activatedByItem) {
+				  activatedByItem.Subquestion.push(aData);
+				}
+			  } else {
+				newData.push(aData);
+			  }
+		}
+
+		return res.json(newData);
 	});
 });
 
