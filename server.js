@@ -3,7 +3,6 @@ const mysql = require("mysql2");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
-require("body-parser");
 require("dotenv").config();
 const port = 3001;
 
@@ -26,7 +25,7 @@ const db = mysql.createConnection({
 	database: process.env.DB_DATABASE,
 });
 
-app.post("/auth/login", (req, res) => {
+app.post("/api/login", (req, res) => {
 	console.log("Request Body:", req.body);
 
 	const sql =
@@ -50,7 +49,11 @@ app.post("/auth/login", (req, res) => {
 					expiresIn: "1h",
 				}
 			);
-			return res.json({ login: true, accessToken: token });
+			return res.json({
+				login: true,
+				accessToken: token,
+				user: { userId, username },
+			});
 		} else {
 			// If no matching user is found, return an error message
 			return res
@@ -60,7 +63,7 @@ app.post("/auth/login", (req, res) => {
 	});
 });
 
-app.get("/auth/pitsurvey", (req, res) => {
+app.get("/api/pitsurvey", authenticateToken, (req, res) => {
 	const sql = "SELECT * FROM hifis_pitsurvey";
 	db.query(sql, (err, data) => {
 		if (err) {
@@ -124,10 +127,17 @@ app.get("/", (req, res) => {
 function authenticateToken(req, res, next) {
 	const authHeader = req.headers["authorization"];
 	const token = authHeader && authHeader.split(" ")[1];
-	if (token == null) return res.sendStatus(401);
+
+	if (!token) {
+		return res.sendStatus(401);
+	}
 
 	jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-		if (err) return res.sendStatus(403);
+		if (err) {
+			console.error("Token Verification Error:", err);
+			return res.sendStatus(403);
+		}
+
 		req.user = user;
 		next();
 	});
