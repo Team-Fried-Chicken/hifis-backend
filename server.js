@@ -109,8 +109,46 @@ app.get("/auth/questions", (req, res) => {
 	});
 });
 
-app.get("/auth/answers", (req, res) => {
-	const sql = "SELECT dd.QuestionPickListID AS OptionID, dd.QuestionID, dd.Name AS Options, ddat.NameE AS Actions FROM HIFIS_PiTQuestionDropDown dd LEFT JOIN HIFIS_PiTDropDownActionTypes ddat ON dd.DropDownActionTypeID = ddat.ID";
+app.get("/api/questions", (req, res) => {
+	const sql =
+		"SELECT q.QuestionID, qt.NameE AS Type, q.Question, q.SequenceNo, q.ActivatedBy, q.Type AS Category FROM HIFIS_PiTQuestions q JOIN HIFIS_PiTQuestionTypes qt ON q.QuestionTypeID = qt.ID ORDER BY q.SequenceNo";
+	db.query(sql, (err, data) => {
+		if (err) {
+			console.error("Error executing query:", err);
+			return res.status(500).json({ message: "Internal server error" });
+		}
+		let newData = [];
+		for (let i = 0; i < data.length; i++) {
+			let aData = {
+				QuestionID: data[i].QuestionID,
+				Type: data[i].Type,
+				Question: data[i].Question,
+				SequenceNo: data[i].SequenceNo,
+				ActivatedBy: data[i].ActivatedBy,
+				Category: data[i].Category,
+				Subquestion: [],
+			};
+
+			if (data[i].ActivatedBy !== null) {
+				let activatedByItem = newData.find(
+					(item) => item.QuestionID === data[i].ActivatedBy
+				);
+
+				if (activatedByItem) {
+					activatedByItem.Subquestion.push(aData);
+				}
+			} else {
+				newData.push(aData);
+			}
+		}
+
+		return res.json(newData);
+	});
+});
+
+app.get("/api/answers", (req, res) => {
+	const sql =
+		"SELECT dd.QuestionPickListID AS OptionID, dd.QuestionID, dd.Name AS Options, ddat.NameE AS Actions FROM HIFIS_PiTQuestionDropDown dd LEFT JOIN HIFIS_PiTDropDownActionTypes ddat ON dd.DropDownActionTypeID = ddat.ID";
 	db.query(sql, (err, data) => {
 		if (err) {
 			console.error("Error executing query:", err);
@@ -118,6 +156,50 @@ app.get("/auth/answers", (req, res) => {
 		}
 		return res.json(data);
 	});
+});
+
+app.post("/api/createsurvey", authenticateToken, (req, res) => {
+	const {
+		surveyNo, // Manually specify SurveyNo
+		pitShift,
+		location,
+		comment,
+		// Add other survey data fields here as needed
+	} = req.body;
+
+	const createdBy = req.user.userId; // Assuming userId is stored in the JWT token
+	const lastUpdatedBy = req.user.userId; // Assuming userId is stored in the JWT token
+	const surveyStatus = "Incomplete"; // Set the initial status as needed
+
+	const sql =
+		"INSERT INTO HIFIS_PiTSurvey (SurveyNo, ShiftTime, CreatedDate, LastUpdatedDate, Location, Comments, CreatedBy, LastUpdatedBy, SurveyStatus) VALUES (?, ?, NOW(), NOW(), ?, ?, ?, ?, ?)";
+
+	// Use parameterized query to prevent SQL injection
+	db.query(
+		sql,
+		[
+			surveyNo, // Manually specified SurveyNo
+			pitShift,
+			location,
+			comment,
+			createdBy,
+			lastUpdatedBy,
+			surveyStatus,
+		],
+		(err, result) => {
+			if (err) {
+				console.error("Error executing query:", err);
+				return res.status(500).json({ message: "Internal server error" });
+			}
+
+			const newSurveyId = result.insertId;
+			return res.json({
+				success: true,
+				message: "Survey created successfully",
+				newSurveyId,
+			});
+		}
+	);
 });
 
 app.get("/", (req, res) => {
