@@ -184,6 +184,25 @@ app.post("/api/createsurvey", authenticateToken, (req, res) => {
 	);
 });
 
+app.delete("/api/pitsurvey/:surveyNo", authenticateToken, (req, res) => {
+	const surveyNo = req.params.surveyNo;
+
+	const deleteSql = "DELETE FROM HIFIS_PiTSurvey WHERE SurveyNo = ?";
+
+	db.query(deleteSql, [surveyNo], (err, result) => {
+		if (err) {
+			console.error("Error executing delete query:", err);
+			return res.status(500).json({ message: "Internal server error" });
+		}
+
+		return res.json({
+			success: true,
+			message: "Survey deleted successfully",
+			deletedSurveyNo: surveyNo,
+		});
+	});
+});
+
 app.get("/", (req, res) => {
 	return res.json("From Backend");
 });
